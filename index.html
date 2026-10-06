@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora IR MEI</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:480px;margin:40px auto;padding:16px;background:#fafafa}
+h2{margin-top:0}
+label{display:block;margin:12px 0 4px;font-weight:600}
+input,select,button{width:100%;padding:10px;font-size:16px;box-sizing:border-box;border:1px solid #ccc;border-radius:6px}
+button{background:#111;color:#fff;border:0;margin-top:16px;cursor:pointer}
+.box{background:#fff;padding:12px;margin-top:16px;border-radius:8px;border:1px solid #eee}
+small{color:#666;display:block;margin-top:16px;line-height:1.4}
+</style>
+</head>
+<body>
+<h2>IR do MEI (estimativa)</h2>
+<label>Faturamento anual (R$)</label>
+<input id="fat" type="number" value="80000">
+<label>Despesas comprovadas (R$)</label>
+<input id="desp" type="number" value="15000">
+<label>Atividade</label>
+<select id="atv">
+<option value="0.08">Comércio / Indústria / Carga (8%)</option>
+<option value="0.16">Transporte de passageiros (16%)</option>
+<option value="0.32" selected>Serviços (32%)</option>
+</select>
+<label>Outras rendas tributáveis (R$)</label>
+<input id="outras" type="number" value="0">
+<button onclick="calc()">Calcular</button>
+<div id="out" class="box">Preencha e calcule.</div>
+<small>Estimativa. Não substitui contador nem a Receita Federal. Limite de declaração usado: R$ 35.584 (IR 2026 / renda 2025). Limite MEI: R$ 81.000. Acima de R$ 97.200 há risco de desenquadramento. A isenção nova de R$ 5 mil/mês vale a partir de 2026.</small>
+<script>
+function calc(){
+  const fat=+document.getElementById('fat').value||0;
+  const desp=+document.getElementById('desp').value||0;
+  const perc=+document.getElementById('atv').value;
+  const outras=+document.getElementById('outras').value||0;
+  const isenta=fat*perc;
+  const lucro=Math.max(0,fat-desp);
+  const trib=Math.max(0,lucro-isenta);
+  const total=trib+outras;
+  const declara=total>35584;
+  let alerta=fat<=81000?'Dentro do limite MEI':(fat<=97200?'Até 20% acima: atenção à migração':'Acima de 20%: risco de desenquadramento');
+  document.getElementById('out').innerHTML=
+    '<b>Parcela isenta:</b> R$ '+isenta.toFixed(2)+'<br>'+
+    '<b>Lucro:</b> R$ '+lucro.toFixed(2)+'<br>'+
+    '<b>Tributável do MEI:</b> R$ '+trib.toFixed(2)+'<br>'+
+    '<b>Total tributável aprox.:</b> R$ '+total.toFixed(2)+'<br>'+
+    '<b>Precisa declarar?</b> '+(declara?'Provavelmente sim':'Provavelmente não')+'<br>'+
+    '<b>Limite:</b> '+alerta;
+}
+</script>
+</body>
+</html>
