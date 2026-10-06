@@ -5,51 +5,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calculadora IR MEI</title>
 <style>
-body{font-family:system-ui,sans-serif;max-width:480px;margin:40px auto;padding:16px;background:#fafafa}
-h2{margin-top:0}
-label{display:block;margin:12px 0 4px;font-weight:600}
-input,select,button{width:100%;padding:10px;font-size:16px;box-sizing:border-box;border:1px solid #ccc;border-radius:6px}
-button{background:#111;color:#fff;border:0;margin-top:16px;cursor:pointer}
-.box{background:#fff;padding:12px;margin-top:16px;border-radius:8px;border:1px solid #eee}
-small{color:#666;display:block;margin-top:16px;line-height:1.4}
+  :root { --bg:#f6f3ee; --ink:#1c1917; --clay:#c45c26; --moss:#3d5c45; --line:#e7e0d6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 640px; margin: 0 auto; padding: 28px 18px 64px; }
+  h1 { font-size: 1.7rem; font-weight: 500; margin: 0 0 6px; }
+  p.lead { margin: 0 0 22px; color:#57534e; font-size: 0.98rem; }
+  label { display:block; font-size: 0.85rem; margin: 14px 0 6px; }
+  input, select { width:100%; padding: 10px 12px; border:1px solid var(--line); background:#fff; font: inherit; font-size: 1rem; }
+  button { margin-top: 18px; background: var(--ink); color:#fff; border:0; padding: 12px 16px; font: inherit; cursor:pointer; width:100%; }
+  .out { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px; display:none; }
+  .row { display:flex; justify-content:space-between; gap:12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .row b { font-weight: 600; }
+  .alert { margin-top: 14px; padding: 12px; background:#fff; border-left: 3px solid var(--clay); }
+  .ok { border-left-color: var(--moss); }
+  .note { margin-top: 22px; font-size: 0.82rem; color:#78716c; line-height: 1.45; }
 </style>
 </head>
 <body>
-<h2>IR do MEI (estimativa)</h2>
-<label>Faturamento anual (R$)</label>
-<input id="fat" type="number" value="80000">
-<label>Despesas comprovadas (R$)</label>
-<input id="desp" type="number" value="15000">
-<label>Atividade</label>
-<select id="atv">
-<option value="0.08">Comércio / Indústria / Carga (8%)</option>
-<option value="0.16">Transporte de passageiros (16%)</option>
-<option value="0.32" selected>Serviços (32%)</option>
-</select>
-<label>Outras rendas tributáveis (R$)</label>
-<input id="outras" type="number" value="0">
-<button onclick="calc()">Calcular</button>
-<div id="out" class="box">Preencha e calcule.</div>
-<small>Estimativa. Não substitui contador nem a Receita Federal. Limite de declaração usado: R$ 35.584 (IR 2026 / renda 2025). Limite MEI: R$ 81.000. Acima de R$ 97.200 há risco de desenquadramento. A isenção nova de R$ 5 mil/mês vale a partir de 2026.</small>
+<main>
+  <h1>Calculadora IR do MEI</h1>
+  <p class="lead">Estima a parcela isenta e o rendimento tributável para o IRPF. Ano-base 2025, declaração 2026. Não é parecer.</p>
+
+  <label>Faturamento bruto anual (R$)</label>
+  <input id="fat" type="number" min="0" step="0.01" value="80000">
+
+  <label>Despesas comprovadas do negócio (R$)</label>
+  <input id="desp" type="number" min="0" step="0.01" value="15000">
+
+  <label>Atividade</label>
+  <select id="ativ">
+    <option value="0.32">Serviços (32% isento)</option>
+    <option value="0.16">Transporte de passageiros (16% isento)</option>
+    <option value="0.08">Comércio, indústria ou transporte de cargas (8% isento)</option>
+  </select>
+
+  <label>Outras rendas tributáveis no ano (R$)</label>
+  <input id="outras" type="number" min="0" step="0.01" value="0">
+
+  <label>Mês de abertura do MEI (1 = janeiro)</label>
+  <input id="mes" type="number" min="1" max="12" value="1">
+
+  <button onclick="calc()">Calcular</button>
+
+  <div class="out" id="out"></div>
+  <p class="note">Estimativa com a regra usual do lucro presumido do MEI: parcela isenta = percentual da receita bruta; tributável = lucro (receita − despesas) menos essa parcela, se positivo. Limite de obrigatoriedade usado: R$ 35.584 de rendimentos tributáveis. Teto MEI: R$ 81.000, proporcional a R$ 6.750 por mês de atividade. Com contabilidade formal, o lucro distribuído pode ser tratado de outro modo. Não substitui contador nem a Receita Federal.</p>
+</main>
 <script>
+function money(n){
+  return n.toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+}
 function calc(){
-  const fat=+document.getElementById('fat').value||0;
-  const desp=+document.getElementById('desp').value||0;
-  const perc=+document.getElementById('atv').value;
-  const outras=+document.getElementById('outras').value||0;
-  const isenta=fat*perc;
-  const lucro=Math.max(0,fat-desp);
-  const trib=Math.max(0,lucro-isenta);
-  const total=trib+outras;
-  const declara=total>35584;
-  let alerta=fat<=81000?'Dentro do limite MEI':(fat<=97200?'Até 20% acima: atenção à migração':'Acima de 20%: risco de desenquadramento');
-  document.getElementById('out').innerHTML=
-    '<b>Parcela isenta:</b> R$ '+isenta.toFixed(2)+'<br>'+
-    '<b>Lucro:</b> R$ '+lucro.toFixed(2)+'<br>'+
-    '<b>Tributável do MEI:</b> R$ '+trib.toFixed(2)+'<br>'+
-    '<b>Total tributável aprox.:</b> R$ '+total.toFixed(2)+'<br>'+
-    '<b>Precisa declarar?</b> '+(declara?'Provavelmente sim':'Provavelmente não')+'<br>'+
-    '<b>Limite:</b> '+alerta;
+  const fat = Number(document.getElementById("fat").value) || 0;
+  const desp = Number(document.getElementById("desp").value) || 0;
+  const pct = Number(document.getElementById("ativ").value);
+  const outras = Number(document.getElementById("outras").value) || 0;
+  const mes = Math.min(12, Math.max(1, Number(document.getElementById("mes").value) || 1));
+  const meses = 13 - mes;
+  const limite = 6750 * meses;
+  const parcela = fat * pct;
+  const lucro = fat - desp;
+  let isenta, trib;
+  if (lucro <= parcela) {
+    isenta = Math.max(lucro, 0);
+    trib = 0;
+  } else {
+    isenta = parcela;
+    trib = lucro - parcela;
+  }
+  const total = trib + outras;
+  const obrigado = total > 35584;
+  let limiteMsg = "Dentro do teto do MEI (" + money(limite) + ").";
+  let cls = "ok";
+  if (fat > limite * 1.2) {
+    limiteMsg = "Acima de 20% do teto (" + money(limite) + "). Risco de desenquadramento retroativo.";
+    cls = "";
+  } else if (fat > limite) {
+    limiteMsg = "Passou do teto em até 20% (" + money(limite) + "). Em geral migra no ano seguinte.";
+    cls = "";
+  }
+  document.getElementById("out").style.display = "block";
+  document.getElementById("out").innerHTML =
+    '<div class="row"><span>Lucro</span><b>' + money(lucro) + '</b></div>' +
+    '<div class="row"><span>Parcela isenta</span><b>' + money(isenta) + '</b></div>' +
+    '<div class="row"><span>Tributável do MEI</span><b>' + money(trib) + '</b></div>' +
+    '<div class="row"><span>Total tributável</span><b>' + money(total) + '</b></div>' +
+    '<div class="alert ' + (obrigado ? "" : "ok") + '">' +
+      (obrigado
+        ? "Provavelmente precisa declarar o IRPF. Lance a isenta em Rendimentos Isentos e Não Tributáveis e a tributável em Rendimentos Tributáveis Recebidos de PJ."
+        : "Só por este cálculo, o tributável ficou abaixo de R$ 35.584. Outros critérios (bens, isentos altos, bolsa) ainda podem obrigar a declarar.") +
+    '</div>' +
+    '<div class="alert ' + cls + '">' + limiteMsg + '</div>';
 }
 </script>
 </body>
